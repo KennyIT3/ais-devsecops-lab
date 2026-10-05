@@ -1,0 +1,9 @@
+---
+- name: Configure GitLab CI runner
+  hosts: gitlab_runners
+  become: true
+  gather_facts: true
+
+  roles:
+    - docker
+    - gitlab_runner

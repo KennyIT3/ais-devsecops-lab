@@ -1,0 +1,68 @@
+---
+- name: Install GitLab Runner repository prerequisites
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Download GitLab Runner repository setup script
+  ansible.builtin.get_url:
+    url: https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh
+    dest: /tmp/gitlab-runner-repo.sh
+    mode: "0755"
+
+- name: Configure GitLab Runner repository
+  ansible.builtin.command:
+    cmd: /tmp/gitlab-runner-repo.sh
+    creates: /etc/apt/sources.list.d/runner_gitlab-runner.list
+
+- name: Install GitLab Runner
+  ansible.builtin.apt:
+    name: gitlab-runner
+    state: present
+    update_cache: true
+
+- name: Add GitLab Runner user to Docker group
+  ansible.builtin.user:
+    name: gitlab-runner
+    groups: docker
+    append: true
+  notify: Restart gitlab-runner
+
+- name: Ensure GitLab Runner service is enabled and running
+  ansible.builtin.systemd:
+    name: gitlab-runner
+    enabled: true
+    state: started
+
+- name: Check registered GitLab runners
+  ansible.builtin.command:
+    cmd: gitlab-runner list
+  register: gitlab_registered_runners
+  changed_when: false
+
+- name: Register GitLab Runner
+  ansible.builtin.command:
+    argv:
+      - gitlab-runner
+      - register
+      - --non-interactive
+      - --url
+      - "{{ gitlab_runner_url }}"
+      - --token
+      - "{{ lookup('env', 'RUNNER_TOKEN') }}"
+      - --executor
+      - "{{ gitlab_runner_executor }}"
+      - --docker-image
+      - "{{ gitlab_runner_default_image }}"
+      - --docker-pull-policy
+      - if-not-present
+      - --description
+      - "{{ gitlab_runner_name }}"
+  when:
+    - gitlab_runner_name not in gitlab_registered_runners.stdout
+    - gitlab_runner_name not in gitlab_registered_runners.stderr
+  no_log: true
+  notify: Restart gitlab-runner
