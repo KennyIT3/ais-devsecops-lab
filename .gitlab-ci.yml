@@ -61,3 +61,33 @@ build-image:
   script:
     - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+scan-image:
+  stage: scan
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  variables:
+    TRIVY_USERNAME: "$CI_REGISTRY_USER"
+    TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    TRIVY_NO_PROGRESS: "true"
+
+  script:
+    - echo "Scanning $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+    - >
+      trivy image
+      --scanners vuln
+      --severity LOW,MEDIUM
+      --exit-code 0
+      "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+    - >
+      trivy image
+      --scanners vuln
+      --severity HIGH,CRITICAL
+      --ignore-unfixed
+      --exit-code 1
+      "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
