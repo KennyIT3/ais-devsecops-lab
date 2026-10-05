@@ -32,23 +32,32 @@ unit-tests:
 build-image:
   stage: build
 
-  image: docker:cli
+  image: docker:29.0.5-cli
 
   services:
-    - name: docker:dind-rootless
+    - name: docker:29.0.5-dind-rootless
       alias: docker
+      variables:
+        HEALTHCHECK_TCP_PORT: "2375"
 
   variables:
     DOCKER_HOST: "tcp://docker:2375"
     DOCKER_TLS_CERTDIR: ""
 
   before_script:
+    - echo "Waiting for Docker daemon..."
+    - |
+      for i in $(seq 1 30); do
+        if docker info >/dev/null 2>&1; then
+          echo "Docker daemon is ready"
+          break
+        fi
+
+        echo "Waiting for Docker... attempt $i/30"
+        sleep 2
+      done
     - docker info
-    - echo "$CI_REGISTRY_PASSWORD" |
-      docker login
-      --username "$CI_REGISTRY_USER"
-      --password-stdin
-      "$CI_REGISTRY"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
   script:
     - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
