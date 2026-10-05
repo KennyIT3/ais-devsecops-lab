@@ -35,7 +35,7 @@ build-image:
   image: docker:29.8.1-cli
 
   services:
-    - name: docker:29.8.1-dind-rootless
+    - name: docker:29.8.1-dind
       alias: docker
       variables:
         HEALTHCHECK_TCP_PORT: "2375"
