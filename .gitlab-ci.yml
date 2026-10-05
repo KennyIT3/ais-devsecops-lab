@@ -32,21 +32,24 @@ unit-tests:
 build-image:
   stage: build
 
-  image:
-    name: moby/buildkit:rootless
-    entrypoint: [""]
+  image: docker:cli
+
+  services:
+    - name: docker:dind-rootless
+      alias: docker
 
   variables:
-    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
 
   before_script:
-    - mkdir -p ~/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > ~/.docker/config.json
+    - docker info
+    - echo "$CI_REGISTRY_PASSWORD" |
+      docker login
+      --username "$CI_REGISTRY_USER"
+      --password-stdin
+      "$CI_REGISTRY"
 
   script:
-    - |
-      buildctl-daemonless.sh build \
-        --frontend dockerfile.v0 \
-        --local context=. \
-        --local dockerfile=. \
-        --output type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,push=true
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
