@@ -32,10 +32,10 @@ unit-tests:
 build-image:
   stage: build
 
-  image: docker:29.0.5-cli
+  image: docker:29.8.1-cli
 
   services:
-    - name: docker:29.0.5-dind-rootless
+    - name: docker:29.8.1-dind-rootless
       alias: docker
       variables:
         HEALTHCHECK_TCP_PORT: "2375"
@@ -52,7 +52,6 @@ build-image:
           echo "Docker daemon is ready"
           break
         fi
-
         echo "Waiting for Docker... attempt $i/30"
         sleep 2
       done
