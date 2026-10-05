@@ -2,6 +2,7 @@ stages:
   - validate
   - test
   - build
+  - scan
 
 default:
   tags:
