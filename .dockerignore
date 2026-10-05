@@ -1,0 +1,10 @@
+.git
+.gitlab-ci.yml
+.venv
+.pytest_cache
+__pycache__
+terraform
+ansible
+kubernetes
+docs
+*.pyc

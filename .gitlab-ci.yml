@@ -1,6 +1,7 @@
 stages:
   - validate
   - test
+  - build
 
 default:
   tags:
@@ -20,6 +21,27 @@ unit-tests:
   stage: test
   image: python:3.12-slim
 
+build-image:
+  stage: build
+
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [""]
+
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+
+  before_script:
+    - mkdir -p ~/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > ~/.docker/config.json
+
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=. \
+        --local dockerfile=. \
+        --output type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,push=true
   before_script:
     - python -m pip install --upgrade pip
     - pip install -r app/requirements.txt
